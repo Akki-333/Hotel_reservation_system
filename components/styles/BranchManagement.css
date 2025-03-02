@@ -1,0 +1,22 @@
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+  }
+  
+  .table-fixed th,
+  .table-fixed td {
+    word-wrap: break-word; /* Wrap long words */
+    white-space: normal; /* Allow multi-line text */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Show "..." for long text */
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .fixed-cell {
+    width: 100%; /* Each column takes equal space */
+  }
+
+
+
+  

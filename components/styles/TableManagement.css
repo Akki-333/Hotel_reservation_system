@@ -1,0 +1,20 @@
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+  }
+  
+  .table-fixed th,
+  .table-fixed td {
+    word-wrap: break-word; /* Wrap words */
+    white-space: normal; /* Allow text to wrap */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Show '...' if text is too long */
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .fixed-cell {
+    width: 100%;
+
+  }
+  

@@ -1,0 +1,28 @@
+/* Custom CSS for floating effect */
+.floating-card {
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+  }
+  
+  .floating-card:hover {
+    transform: translateY(-10px); /* Move the card upwards on hover */
+  }
+  
+  .card-img-top {
+    max-height: 200px;
+    object-fit: cover;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  
+  .card-body {
+    background-color: #f8f9fa;
+    border-radius: 0 0 10px 10px;
+  }
+  
+  .btn {
+    width: 100%; /* Make the "Book" button full-width */
+  }
+  

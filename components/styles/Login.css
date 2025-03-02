@@ -1,0 +1,59 @@
+/* Custom styles */
+body {
+  font-family: Arial, sans-serif;
+}
+
+.login-card {
+  background-color:azure;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 35px;
+  max-width: 80%;
+}
+
+.h4{
+  padding: 15px;
+  font-weight:bold !important;
+  font: 1em sans-serif;
+}
+
+.btn-facebook {
+  background-color: #3b5998 !important;
+  color: white;
+  height: 50px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.btn-google {
+  background-color: red !important;
+  color: white;
+  height: 50px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border: none;
+  height: 50px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.form-control {
+  height: 50px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.divider {
+  border-top: 1px solid #e5e5e5;
+}
+
+
+.custom-toast-container {
+  margin-top: 6%; /* Pushes toast slightly down */
+  border-color: black !important;
+  border-width: 3px !important;
+}
