@@ -9,10 +9,33 @@ const AdminDashboard = () => {
   const [tables, setTables] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchNotification, setSearchNotification] = useState("");
   const navigate = useNavigate();
 
+  // Filter notifications based on search
+  const filteredNotifications = notifications.filter(notif =>
+    notif.message.toLowerCase().includes(searchNotification.toLowerCase())
+  );
 
-  
+  // Helper function to highlight matched text
+  const highlightText = (text, searchTerm) => {
+    if (!searchTerm) return text;
+    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, index) => 
+          part.toLowerCase() === searchTerm.toLowerCase() ? (
+            <span key={index} style={{ backgroundColor: '#ffeb3b', padding: '0 2px', borderRadius: '2px' }}>
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       fetchNotifications();
@@ -99,34 +122,50 @@ const AdminDashboard = () => {
       <div className="row">
         {/* Notifications Panel */}
         <div className="col-md-4">
-  <div className="card">
-    <div className="card-header">
-      <h4>Notifications</h4>
-    </div>
-    <div className="card-body" 
-         style={{ maxHeight: notifications.length >= 5 ? "200px" : "auto", overflowY: notifications.length >= 5 ? "auto" : "visible" }}>
-      <ul className="list-group">
-        {loading
-          ? [...Array(3)].map((_, index) => (
-              <li key={index} className="list-group-item">
-                <Skeleton width={"100%"} height={20} />
-              </li>
-            ))
-          : notifications.map((notif) => (
-              <li key={notif.id} className="list-group-item d-flex justify-content-between">
-                <span>{notif.message}</span>
-                <button className="btn btn-danger btn-sm p-1 d-flex align-items-center justify-content-center" 
-                  style={{ width: "30px", height: "30px" }} 
-                  onClick={() => deleteNotification(notif.id)}>
-                  <i className="bi bi-trash"></i>
-                </button>
-              </li>
-            ))}
-      </ul>
-    </div>
-  </div>
-</div>
-
+          <div className="card">
+            <div className="card-header">
+              <h4 className="mb-3">Notifications</h4>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search notifications..."
+                  value={searchNotification}
+                  onChange={(e) => setSearchNotification(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="card-body" 
+                 style={{ maxHeight: filteredNotifications.length >= 5 ? "200px" : "auto", overflowY: filteredNotifications.length >= 5 ? "auto" : "visible" }}>
+              <ul className="list-group">
+                {loading ? (
+                  [...Array(3)].map((_, index) => (
+                    <li key={index} className="list-group-item">
+                      <Skeleton width={"100%"} height={20} />
+                    </li>
+                  ))
+                ) : filteredNotifications.length > 0 ? (
+                  filteredNotifications.map((notif) => (
+                    <li key={notif.id} className="list-group-item d-flex justify-content-between">
+                      <span>{highlightText(notif.message, searchNotification)}</span>
+                      <button 
+                        className="btn btn-danger btn-sm p-1 d-flex align-items-center justify-content-center" 
+                        style={{ width: "30px", height: "30px" }} 
+                        onClick={() => deleteNotification(notif.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="list-group-item text-center">
+                    {searchNotification ? "No matching notifications" : "No notifications"}
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
 
         {/* Table Management */}
         <div className="col-md-4">

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { toast } from "react-toastify"; 
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button, Form , Table} from "react-bootstrap";
 import { use } from "react";
 
 const BookingForm = () => {
@@ -24,6 +24,7 @@ const BookingForm = () => {
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [showTableModal, setShowTableModal] = useState(false);
   const [coupon, setCoupon] = useState("");
+  
   const [selectedTable, setSelectedTable] = useState({
     id: null,
     capacity: null,
@@ -69,6 +70,8 @@ const groupedFoods = foods.reduce((acc, food) => {
   acc[food.category].push(food);
   return acc;
 }, {});
+
+const selectedMainCourse = groupedFoods["Main Course"]?.find(food => food.name === order.mainCourse);
 
 
 const handleOrderChange = (e) => {
@@ -634,80 +637,116 @@ const handleSkipFood = () => {
           </form>
 
           <Modal show={showFoodModal} onHide={() => setShowFoodModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>🍽️ Customize Your Order</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                <Form>
-                    <Form.Group className="mb-3">
-                        <Form.Label>🥢 Starter</Form.Label>
-                        <Form.Select name="starter" value={order.starter} onChange={handleChange}>
-                            <option value="">Select a starter</option>
-                            {groupedFoods.Starter?.map((food) => (
-                                <option key={food.id} value={food.name}>
-                                    {food.name} - ₹{food.price}
-                                </option>
-                            ))}
-                        </Form.Select>
-                    </Form.Group>
+    <Modal.Header closeButton>
+        <Modal.Title>🍽️ Customize Your Order</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+        <Form>
+            {/* Starter Selection */}
+            <Form.Group className="mb-3">
+                <Form.Label>🥢 Starter</Form.Label>
+                <Form.Select name="starter" value={order.starter} onChange={handleChange}>
+                    <option value="">Select a starter</option>
+                    {groupedFoods.Starter?.map((food) => (
+                        <option key={food.id} value={food.name}>
+                            {food.name} - ₹{food.price}
+                        </option>
+                    ))}
+                </Form.Select>
+            </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label>🍽️ Main Course</Form.Label>
-                        <Form.Select name="mainCourse" value={order.mainCourse} onChange={handleChange}>
-                            <option value="">Select a main course</option>
-                            {groupedFoods["Main Course"]?.map((food) => (
-                                <option key={food.id} value={food.name}>
-                                    {food.name} - ₹{food.price}
-                                </option>
-                            ))}
-                        </Form.Select>
-                    </Form.Group>
+            {/* Main Course Selection */}
+            <Form.Group className="mb-3">
+                <Form.Label>🍽️ Main Course</Form.Label>
+                <Form.Select name="mainCourse" value={order.mainCourse} onChange={handleChange}>
+                    <option value="">Select a main course</option>
+                    {groupedFoods["Main Course"]?.map((food) => (
+                        <option key={food.id} value={food.name}>
+                            {food.name} - ₹{food.price}
+                        </option>
+                    ))}
+                </Form.Select>
+            </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label>🍰 Dessert</Form.Label>
-                        <Form.Select name="dessert" value={order.dessert} onChange={handleChange}>
-                            <option value="">Select a dessert</option>
-                            {groupedFoods.Dessert?.map((food) => (
-                                <option key={food.id} value={food.name}>
-                                    {food.name} - ₹{food.price}
-                                </option>
-                            ))}
-                        </Form.Select>
-                    </Form.Group>
+            {/* Nutritional Details Table (Only Visible if a Main Course is Selected) */}
+            {order.mainCourse && selectedMainCourse && (
+                <div className="mt-3">
+                    <h6>📊 Nutritional Information</h6>
+                    <Table striped bordered hover size="sm">
+                        <thead>
+                            <tr>
+                                <th>Nutrient</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Calories</td>
+                                <td>{selectedMainCourse.calories || "N/A"} kcal</td>
+                            </tr>
+                            <tr>
+                                <td>Proteins</td>
+                                <td>{selectedMainCourse.proteins || "N/A"} g</td>
+                            </tr>
+                            <tr>
+                                <td>Fibers</td>
+                                <td>{selectedMainCourse.fibers || "N/A"} g</td>
+                            </tr>
+                        </tbody>
+                    </Table>
+                </div>
+            )}
 
-                    <Form.Group className="mb-3">
-                        <Form.Label>🥤 Beverage</Form.Label>
-                        <Form.Select name="beverage" value={order.beverage} onChange={handleChange}>
-                            <option value="">Select a beverage</option>
-                            {groupedFoods.Beverage?.map((food) => (
-                                <option key={food.id} value={food.name}>
-                                    {food.name} - ₹{food.price}
-                                </option>
-                            ))}
-                        </Form.Select>
-                    </Form.Group>
+            {/* Dessert Selection */}
+            <Form.Group className="mb-3">
+                <Form.Label>🍰 Dessert</Form.Label>
+                <Form.Select name="dessert" value={order.dessert} onChange={handleChange}>
+                    <option value="">Select a dessert</option>
+                    {groupedFoods.Dessert?.map((food) => (
+                        <option key={food.id} value={food.name}>
+                            {food.name} - ₹{food.price}
+                        </option>
+                    ))}
+                </Form.Select>
+            </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label>📝 Special Instructions</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            name="specialInstructions"
-                            value={order.specialInstructions}
-                            onChange={handleChange}
-                            placeholder="E.g. Less spicy, no onions"
-                        />
-                    </Form.Group>
-                </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleSkipFood}>
-                        Skip Food Selection
-                    </Button>
-                    <Button variant="success" onClick={handleConfirmFood}>
-                        Confirm Order & Book Table
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {/* Beverage Selection */}
+            <Form.Group className="mb-3">
+                <Form.Label>🥤 Beverage</Form.Label>
+                <Form.Select name="beverage" value={order.beverage} onChange={handleChange}>
+                    <option value="">Select a beverage</option>
+                    {groupedFoods.Beverage?.map((food) => (
+                        <option key={food.id} value={food.name}>
+                            {food.name} - ₹{food.price}
+                        </option>
+                    ))}
+                </Form.Select>
+            </Form.Group>
+
+            {/* Special Instructions */}
+            <Form.Group className="mb-3">
+                <Form.Label>📝 Special Instructions</Form.Label>
+                <Form.Control
+                    as="textarea"
+                    name="specialInstructions"
+                    value={order.specialInstructions}
+                    onChange={handleChange}
+                    placeholder="E.g. Less spicy, no onions"
+                />
+            </Form.Group>
+        </Form>
+    </Modal.Body>
+
+    <Modal.Footer>
+        <Button variant="secondary" onClick={handleSkipFood}>
+            Skip Food Selection
+        </Button>
+        <Button variant="success" onClick={handleConfirmFood}>
+            Confirm Order & Book Table
+        </Button>
+    </Modal.Footer>
+</Modal>
+
         </div>
 
         {/* Carousel Section - 1/3 of Page */}

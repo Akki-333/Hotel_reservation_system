@@ -375,6 +375,10 @@ GROUP BY tables.id;
 
     const fullDateTime = `${date} ${time}:00`;
     const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
+if (!/^\+\d{10,15}$/.test(formattedPhone)) {
+    return res.status(400).json({ error: "Invalid phone number format" });
+}
+
 
     const insertQuery = `
         INSERT INTO bookings 
@@ -429,6 +433,8 @@ GROUP BY tables.id;
                             `🔹 Food Status: ${food_status}\n\n` +
                             `We look forward to serving you. Thank you!`,
                     };
+
+                    console.log("No", formattedPhone);
 
                     transporter.sendMail(mailOptions, (error) => {
                         if (error) console.error("❌ Email error:", error);
@@ -637,10 +643,10 @@ app.get('/eligible-users', (req, res) => {
 
 
 app.post('/add-food', upload.single('image'), (req, res) => {
-  const { name, category, price, description } = req.body;
+  const { name, category, price, description, calories, proteins, fibers } = req.body;
 
-  const sql = 'INSERT INTO foods (name, category, price, description ) VALUES (?, ?, ?, ?)';
-  db.query(sql, [name, category, price, description], (err, result) => {
+  const sql = 'INSERT INTO foods (name, category, price, description, calories, proteins, fibers ) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  db.query(sql, [name, category, price, description, calories, proteins, fibers], (err, result) => {
       if (err) return res.status(500).json({ error: 'Failed to add food', details: err });
       res.status(201).json({ message: 'Food added successfully' });
   });
@@ -657,13 +663,13 @@ app.get('/get-foods', (req, res) => {
 
 
 app.put('/update-food/:id', (req, res) => {
-  const { name, category, price, description } = req.body;
+  const { name, category, price, description, calories, proteins, fibers } = req.body;
   const { id } = req.params;
 
   console.log("Body", req.body);
 
-  const query = 'UPDATE foods SET name = ?, category = ?, price = ?, description = ? WHERE id = ?';
-  db.query(query, [name, category, price, description, id], (err) => {
+  const query = 'UPDATE foods SET name = ?, category = ?, price = ?, description = ?, calories = ?, proteins = ?, fibers = ? WHERE id = ?';
+  db.query(query, [name, category, price, description, calories, proteins, fibers, id], (err) => {
       if (err) {
           console.error(err);
           return res.status(500).json({ message: 'Failed to update food item' });

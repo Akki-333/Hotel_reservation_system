@@ -63,7 +63,7 @@ const OrderSummary = () => {
             // Clear local storage
             localStorage.removeItem('pendingBooking');
     
-            navigate('/bookings');
+            navigate('/my-bookings');
         } catch (error) {
             console.error("Error submitting booking:", error);
             Swal.fire({

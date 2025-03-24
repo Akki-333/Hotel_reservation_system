@@ -9,6 +9,9 @@ const AddFood = () => {
         category: '',
         price: '',
         description: '',
+        calories: '',
+        proteins: '',
+        fibers: '',
     });
 
     const [editFood, setEditFood] = useState(null);
@@ -35,6 +38,9 @@ const AddFood = () => {
             category: newFood.category,
             price: newFood.price,
             description: newFood.description,
+            calories: newFood.calories || "0.0",
+            proteins: newFood.proteins || "0.0",
+            fibers: newFood.fibers || "0.0",
         };
 
         try {
@@ -59,6 +65,9 @@ const AddFood = () => {
             category: food.category,
             price: food.price,
             description: food.description,
+            calories: food.calories || '0.0',
+            proteins: food.proteins || '0.0',
+            fibers: food.fibers || '0.0',
         });
     };
 
@@ -80,7 +89,15 @@ const AddFood = () => {
     };
 
     const resetForm = () => {
-        setNewFood({ name: '', category: '', price: '', description: '' });
+        setNewFood({ 
+            name: '', 
+            category: '', 
+            price: '', 
+            description: '',
+            calories: '',
+            proteins: '',
+            fibers: '',
+        });
         setEditFood(null);
     };
 
@@ -132,8 +149,54 @@ const AddFood = () => {
                             value={newFood.description}
                             onChange={handleChange}
                             placeholder="Description"
-                            
                         ></textarea>
+
+                        {/* Nutritional Information */}
+                        {newFood.category === 'Main Course' && (
+    <div className="card mb-3">
+        <div className="card-header">
+            <h6 className="mb-0">Nutritional Information</h6>
+        </div>
+        <div className="card-body">
+            <div className="input-group mb-3">
+                <input
+                    type="number"
+                    className="form-control"
+                    name="calories"
+                    value={newFood.calories}
+                    onChange={handleChange}
+                    placeholder="Calories"
+                />
+                <span className="input-group-text">kcal</span>
+            </div>
+
+            <div className="input-group mb-3">
+                <input
+                    type="number"
+                    className="form-control"
+                    name="proteins"
+                    value={newFood.proteins}
+                    onChange={handleChange}
+                    placeholder="Proteins"
+                />
+                <span className="input-group-text">g</span>
+            </div>
+
+            <div className="input-group mb-3">
+                <input
+                    type="number"
+                    className="form-control"
+                    name="fibers"
+                    value={newFood.fibers}
+                    onChange={handleChange}
+                    placeholder="Fibers"
+                />
+                <span className="input-group-text">g</span>
+            </div>
+        </div>
+    </div>
+)}
+
 
                         <button type="submit" className="btn btn-success w-100">
                             {editFood ? 'Update Food' : 'Add Food'}
@@ -149,39 +212,47 @@ const AddFood = () => {
                 {/* Right Column: Food Management Table */}
                 <div className="col-md-7">
                     <h4 className="mb-4">Food List</h4>
-                    <table className="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {foods.map((food) => (
-                                <tr key={food.id}>
-                                    <td>{food.name}</td>
-                                    <td>{food.category}</td>
-                                    <td>₹{food.price}</td>
-                                    <td className="d-flex gap-2">
-                                        <button
-                                            className="btn btn-warning btn-sm"
-                                            onClick={() => handleEdit(food)}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            className="btn btn-danger btn-sm"
-                                            onClick={() => handleDelete(food.id)}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
+                    <div className="table-responsive">
+                        <table className="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Calories</th>
+                                    <th>Proteins</th>
+                                    <th>Fibers</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {foods.map((food) => (
+                                    <tr key={food.id}>
+                                        <td>{food.name}</td>
+                                        <td>{food.category}</td>
+                                        <td>₹{food.price}</td>
+                                        <td>{food.calories || '-'} kcal</td>
+                                        <td>{food.proteins || '-'} g</td>
+                                        <td>{food.fibers || '-'} g</td>
+                                        <td className="d-flex gap-2">
+                                            <button
+                                                className="btn btn-warning btn-sm"
+                                                onClick={() => handleEdit(food)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => handleDelete(food.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
