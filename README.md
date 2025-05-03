@@ -78,12 +78,12 @@ Follow these steps to set up the project locally:
    Import the SQL schema from database/schema.sql
 
 5. Start the development servers:
-  backend:
+backend:
     ```bash
-    cd client
-    npm start
-  frontend:
+           cd client
+           npm start
+frontend:
    ```bash
-  cd client
-  npm start
+      cd client
+      npm start
 
