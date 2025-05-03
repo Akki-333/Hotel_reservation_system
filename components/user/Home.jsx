@@ -4,6 +4,7 @@ import Carousel from "react-bootstrap/Carousel";
 import "../styles/Home.css";
 import FoodItem from "../Foods/FoodItem";
 import { StoreContext } from "../Foods/StoreContext";
+import src from "../../src/assets/Reservations.jpg";
 
 const HomePage = () => {
   const [category, setCategory] = useState("All");
@@ -17,12 +18,9 @@ const HomePage = () => {
           {["Welcome to Our Hotel", "Book Your Stay Now"].map(
             (title, index) => (
               <Carousel.Item key={index}>
-                <img
-                  className="d-block w-100"
-                  src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/restaurant-facebook-cover-template-design-9b428de1b8b3fe6eca442d4af7a0aa53_screen.jpg?ts=1609753889"
-                  alt={title}
-                />
-                <Carousel.Caption>
+                <img className="d-block w-100" src={src} alt={title} />
+
+                <Carousel.Caption className="carousel-text">
                   <h3>{title}</h3>
                   <p>
                     {index === 0

@@ -40,7 +40,7 @@ const Login = () => {
         username,
         password,
       });
-
+         console.log(response);
       if (response.data.success) {
         localStorage.setItem("username", username);
         localStorage.setItem("userId", response.data.id);
@@ -115,6 +115,8 @@ const Login = () => {
         dob,
         password,
       });
+
+     
 
       if (response.data.success) {
         toast.success("Registration successful!");
