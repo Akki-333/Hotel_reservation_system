@@ -62,3 +62,7 @@ Follow these steps to set up the project locally:
    git clone https://github.com/yourusername/restaurant-reservation-system.git
    cd restaurant-reservation-system
 
+2.Install backend dependencies:
+   ```bash
+   cd server
+   npm install
