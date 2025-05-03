@@ -32,5 +32,4 @@ A full-stack web application for efficiently managing restaurant table reservati
 
 ---
 
-## 📁 Folder Structure
 
