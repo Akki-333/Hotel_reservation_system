@@ -62,7 +62,28 @@ Follow these steps to set up the project locally:
    git clone https://github.com/yourusername/restaurant-reservation-system.git
    cd restaurant-reservation-system
 
-2.Install backend dependencies:
+2. Install backend dependencies:
    ```bash
    cd server
    npm install
+
+3. Install frontend dependencies:
+   ```bash
+   cd ../client
+   npm install
+   
+4. Set up the database:
+   ```bash
+   Create a new MySQL database
+   Import the SQL schema from database/schema.sql
+
+5. Start the development servers:
+  backend:
+    ```bash
+    cd client
+    npm start
+  frontend:
+   ```bash
+  cd client
+  npm start
+
