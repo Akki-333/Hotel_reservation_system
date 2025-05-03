@@ -84,7 +84,6 @@ Follow these steps to set up the project locally:
            cd client
            npm start
    frontend:
-       ```bash
          cd client
          npm start
 
