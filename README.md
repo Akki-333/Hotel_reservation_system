@@ -1,8 +1,36 @@
-# React + Vite
+# 🍽️ Restaurant Reservation and Seating Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack web application for efficiently managing restaurant table reservations, real-time seating availability, and customer flow. Designed to streamline operations and enhance the dining experience for both customers and restaurant staff.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
+
+- Real-time **table reservation** system with live availability tracking.
+- Dynamic **seating allocation** to reduce wait times and optimize space.
+- Admin dashboard to **manage bookings, tables, and schedules**.
+- Responsive and user-friendly **React interface**.
+- Persistent data management using **MySQL** database.
+- Modular and scalable backend architecture with **Node.js** and **Express.js**.
+
+---
+
+## 🛠️ Tech Stack
+
+### 💻 Frontend:
+- HTML5
+- CSS3
+- JavaScript (ES6+)
+- React.js
+
+### 🔧 Backend:
+- Node.js
+- Express.js
+
+### 🗃️ Database:
+- MySQL
+
+---
+
+## 📁 Folder Structure
+
