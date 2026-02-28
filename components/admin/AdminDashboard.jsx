@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import "../styles/AdminDashboard.css";
 
 const AdminDashboard = () => {
   const [branches, setBranches] = useState([]);
@@ -15,12 +14,12 @@ const AdminDashboard = () => {
 
   // Filter notifications based on search
   const filteredNotifications = notifications.filter(notif =>
-    notif.message && notif.message.toLowerCase().includes(searchNotification.toLowerCase())
+    notif.message.toLowerCase().includes(searchNotification.toLowerCase())
   );
 
   // Helper function to highlight matched text
   const highlightText = (text, searchTerm) => {
-    if (!searchTerm || !text) return text;
+    if (!searchTerm) return text;
     const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
     return (
       <span>
@@ -42,11 +41,15 @@ const AdminDashboard = () => {
       fetchNotifications();
 
       try {
-        const branchesRes = await axios.get("http://localhost:5000/branches").catch(() => ({ data: [] }));
-        const tablesRes = await axios.get("http://localhost:5000/tables").catch(() => ({ data: [] }));
+        const [branchesRes, tablesRes, notificationsRes] = await Promise.all([
+          axios.get("http://localhost:5000/branches"),
+          axios.get("http://localhost:5000/tables"),
+          // axios.get("http://localhost:5000/notifications"),
+        ]);
 
         setBranches(branchesRes.data);
         setTables(tablesRes.data);
+        setNotifications(notificationsRes.data);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -57,75 +60,150 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const fetchNotifications = () => {
-    // Simulated notification fetch - can be connected to real backend
-    setNotifications([
-      { id: 1, message: "New booking received from John Doe", time: "2 mins ago" },
-      { id: 2, message: "Table 5 has been booked", time: "15 mins ago" },
-      { id: 3, message: "New user registered: Alice Smith", time: "1 hour ago" },
-    ]);
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8080"); // ✅ Connect to WebSocket server
+
+    ws.onopen = () => {
+      console.log("🟢 Connected to WebSocket Server");
+      setLoading(false);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data); // ✅ Parse message safely
+        console.log("🔔 New Notification:", data);
+
+        if (data && data.message) {
+          setNotifications((prev) => [data, ...prev]); // ✅ Add new notification
+        } else {
+          console.error("❌ Received invalid notification format:", data);
+        }
+      } catch (error) {
+        console.error("❌ Error parsing WebSocket message:", error);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("🔴 Disconnected from WebSocket Server");
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/notifications");
+      setNotifications(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("❌ Error fetching notifications:", error);
+      setLoading(false);
+    }
   };
 
-  // Calculate stats
-  const totalBookedTables = tables.filter(t => t.booked).length;
-  const totalAvailableTables = tables.length - totalBookedTables;
+  // Delete Notification
+  const deleteNotification = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/notifications/${id}`);
+      setNotifications(notifications.filter((notif) => notif.id !== id));
+    } catch (error) {
+      console.error("❌ Error deleting notification:", error);
+    }
+  };
+
 
   return (
-    <div className="admin-dashboard">
-      <div className="dashboard-header">
-        <h1>Admin Dashboard</h1>
-        <p>Welcome back! Here's what's happening with your hotel.</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="row mb-4">
-        <div className="col-md-3">
-          <div className="stats-card branches">
-            <div className="icon">
-              <i className="bi bi-building"></i>
-            </div>
-            <h3>{loading ? <Skeleton width={60} /> : branches.length}</h3>
-            <p>Total Branches</p>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="stats-card tables">
-            <div className="icon">
-              <i className="bi bi-grid-3x3-gap"></i>
-            </div>
-            <h3>{loading ? <Skeleton width={60} /> : tables.length}</h3>
-            <p>Total Tables</p>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="stats-card">
-            <div className="icon">
-              <i className="bi bi-check-circle"></i>
-            </div>
-            <h3>{loading ? <Skeleton width={60} /> : totalAvailableTables}</h3>
-            <p>Available Tables</p>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="stats-card notifications">
-            <div className="icon">
-              <i className="bi bi-bell"></i>
-            </div>
-            <h3>{loading ? <Skeleton width={60} /> : notifications.length}</h3>
-            <p>Recent Notifications</p>
-          </div>
-        </div>
-      </div>
-
+    <div className="container-fluid p-5">
       <div className="row">
-        {/* Branches Table */}
-        <div className="col-md-6">
+        {/* Notifications Panel */}
+        <div className="col-md-4">
           <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h4><i className="bi bi-building me-2"></i>Branches Overview</h4>
-              <button className="btn btn-sm btn-success" onClick={() => navigate("/branch-management")}>
-                <i className="bi bi-plus-circle me-1"></i> Add Branch
+            <div className="card-header">
+              <h4 className="mb-3">Notifications</h4>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search notifications..."
+                  value={searchNotification}
+                  onChange={(e) => setSearchNotification(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="card-body" 
+                 style={{ maxHeight: filteredNotifications.length >= 5 ? "200px" : "auto", overflowY: filteredNotifications.length >= 5 ? "auto" : "visible" }}>
+              <ul className="list-group">
+                {loading ? (
+                  [...Array(3)].map((_, index) => (
+                    <li key={index} className="list-group-item">
+                      <Skeleton width={"100%"} height={20} />
+                    </li>
+                  ))
+                ) : filteredNotifications.length > 0 ? (
+                  filteredNotifications.map((notif) => (
+                    <li key={notif.id} className="list-group-item d-flex justify-content-between">
+                      <span>{highlightText(notif.message, searchNotification)}</span>
+                      <button 
+                        className="btn btn-danger btn-sm p-1 d-flex align-items-center justify-content-center" 
+                        style={{ width: "30px", height: "30px" }} 
+                        onClick={() => deleteNotification(notif.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="list-group-item text-center">
+                    {searchNotification ? "No matching notifications" : "No notifications"}
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Management */}
+        <div className="col-md-4">
+          <div className="card">
+            <div className="card-header">
+              <h4>Table Management</h4>
+            </div>
+            <div className="card-body">
+              <button className="btn btn-primary w-100" onClick={() => navigate("/table-management")}>
+                {loading ? <Skeleton width={150} height={30} /> : "Manage Tables"}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Branch Management */}
+        <div className="col-md-4">
+          <div className="card">
+            <div className="card-header">
+              <h4>Coupon Management</h4>
+            </div>
+            <div className="card-body">
+              <button className="btn btn-success w-100" onClick={() => navigate("/branch-management")}>
+                {loading ? <Skeleton width={150} height={30} /> : "Manage Branches"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+ 
+      </div>
+
+      {/* Table Status */}
+      <div className="row mt-4">
+        <div className="col-md-8">
+          <div className="card">
+            <div className="card-header">
+              <h4>Table Status</h4>
             </div>
             <div className="card-body">
               <table className="table table-bordered">
@@ -133,128 +211,65 @@ const AdminDashboard = () => {
                   <tr>
                     <th>S.No</th>
                     <th>Branch</th>
-                    <th>Booked</th>
-                    <th>Available</th>
+                    <th>Booked Tables</th>
+                    <th>Available Tables</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading
                     ? [...Array(3)].map((_, index) => (
                         <tr key={index}>
-                          <td><Skeleton width={40} /></td>
                           <td><Skeleton width={100} /></td>
                           <td><Skeleton width={50} /></td>
                           <td><Skeleton width={50} /></td>
                         </tr>
                       ))
-                    : branches.length > 0 ? (
-                      branches.map((branch, index) => {
+                    : branches.map((branch, index) => {
                         const branchTables = tables.filter((table) => table.branch_id === branch.id);
                         const bookedTables = branchTables.filter((table) => table.booked).length;
                         const totalTables = branchTables.length;
                         return (
                           <tr key={branch.id}>
                             <td>{index + 1}</td>
-                            <td>{branch.name} ({branch.location})</td>
-                            <td><span className="badge bg-danger">{bookedTables}</span></td>
-                            <td><span className="badge bg-success">{totalTables - bookedTables}</span></td>
+                            <td>{branch.name}({branch.location})</td>
+                            <td>{bookedTables}</td>
+                            <td>{totalTables - bookedTables}</td>
                           </tr>
                         );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan="4" className="text-center text-muted">No branches found</td>
-                      </tr>
-                    )}
+                      })}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
-
-        {/* Notifications */}
-        <div className="col-md-6">
+        <div className="col-md-2">
           <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h4><i className="bi bi-bell me-2"></i>Recent Notifications</h4>
-              <button className="btn btn-sm btn-success" onClick={fetchNotifications}>
-                <i className="bi bi-arrow-clockwise"></i>
-              </button>
+            <div className="card-header">
+              <h4>Food Management</h4>
             </div>
             <div className="card-body">
-              <div className="search-box">
-                <i className="bi bi-search"></i>
-                <input
-                  type="text"
-                  placeholder="Search notifications..."
-                  value={searchNotification}
-                  onChange={(e) => setSearchNotification(e.target.value)}
-                />
-              </div>
-              <div className="notification-list">
-                {filteredNotifications.length > 0 ? (
-                  filteredNotifications.map((notif) => (
-                    <div key={notif.id} className="notification-item p-3 mb-2 border rounded">
-                      <div className="d-flex justify-content-between">
-                        <span className="fw-medium">
-                          {highlightText(notif.message, searchNotification)}
-                        </span>
-                        <small className="text-muted">{notif.time}</small>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted">No notifications found</p>
-                )}
-              </div>
+              <button className="btn btn-success w-100" onClick={() => navigate("/add-food")}>
+                {loading ? <Skeleton width={150} height={30} /> : "Manage Foods"}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-2">
+          <div className="card">
+            <div className="card-header">
+              <h4>Coupon Management</h4>
+            </div>
+            <div className="card-body">
+              <button className="btn btn-success w-100" onClick={() => navigate("/coupon-management")}>
+                {loading ? <Skeleton width={150} height={30} /> : "Manage Coupons"}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="row mt-4">
-        <div className="col-md-3">
-          <div className="card">
-            <div className="card-body text-center">
-              <button className="btn btn-success w-100 py-3" onClick={() => navigate("/add-food")}>
-                <i className="bi bi-utensils me-2 fs-4"></i>
-                <br />Manage Foods
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card">
-            <div className="card-body text-center">
-              <button className="btn btn-warning w-100 py-3" onClick={() => navigate("/coupon-management")}>
-                <i className="bi bi-ticket-perforated me-2 fs-4"></i>
-                <br />Manage Coupons
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card">
-            <div className="card-body text-center">
-              <button className="btn btn-info w-100 py-3" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none', color: 'white' }} onClick={() => navigate("/table-management")}>
-                <i className="bi bi-grid-3x3-gap me-2 fs-4"></i>
-                <br />Manage Tables
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card">
-            <div className="card-body text-center">
-              <button className="btn btn-danger w-100 py-3" onClick={() => navigate("/branch-management")}>
-                <i className="bi bi-branch me-2 fs-4"></i>
-                <br />Branch Management
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+
+    
     </div>
   );
 };

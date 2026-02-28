@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,11 +17,8 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [warnMessage, setWarnMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const storedIsLoggedIn = localStorage.getItem("isLoggedIn");
@@ -30,20 +27,11 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Open registration mode when visiting /login# (or any hash)
-  useEffect(() => {
-    if (location.hash) {
-      setIsRegistering(true);
-    }
-  }, [location.hash]);
-
   const handleLogin = async () => {
     setWarnMessage("");
-    setIsLoading(true);
 
     if (!username || !password) {
       setWarnMessage("Username and password are required.");
-      setIsLoading(false);
       return;
     }
 
@@ -52,31 +40,26 @@ const Login = () => {
         username,
         password,
       });
-      
+         console.log(response);
       if (response.data.success) {
         localStorage.setItem("username", username);
         localStorage.setItem("userId", response.data.id);
         localStorage.setItem("role", response.data.role);
         localStorage.setItem("isLoggedIn", "true");
 
-        toast.success("Login successful! 🎉");
-        
-        setTimeout(() => {
-          if (response.data.role === "admin") {
-            window.location.href = "/admin_dashboard";
-          } else if (response.data.role === "user") {
-            window.location.href = "/";
-          } else {
-            navigate("/");
-          }
-        }, 1000);
+        // Redirect based on user role
+        if (response.data.role === "admin") {
+          window.location.href = "/admin_dashboard";
+        } else if (response.data.role === "user") {
+          window.location.href = "/";
+        } else {
+          navigate("/");
+        }
       } else {
         toast.error("Invalid credentials");
       }
     } catch (err) {
-      toast.error("Server error. Please try again.");
-    } finally {
-      setIsLoading(false);
+      toast.error("Server error");
     }
   };
 
@@ -102,18 +85,18 @@ const Login = () => {
     }
 
     if (!phoneRegex.test(phone)) {
-      setWarnMessage("Phone number must be 10 digits.");
+      setWarnMessage("Invalid phone number. Must be exactly 10 digits.");
       return;
     }
 
     if (!emailRegex.test(email)) {
-      setWarnMessage("Please enter a valid email address.");
+      setWarnMessage("Invalid email format. Example: example@gmail.com");
       return;
     }
 
     if (!passwordRegex.test(password)) {
       setWarnMessage(
-        "Password must contain at least 8 characters, including uppercase, lowercase, number, and special character."
+        "Password must be at least 8 characters, include an uppercase letter, a lowercase letter, a number, and a special character."
       );
       return;
     }
@@ -122,8 +105,6 @@ const Login = () => {
       setWarnMessage("Passwords do not match.");
       return;
     }
-
-    setIsLoading(true);
 
     try {
       const response = await axios.post("http://localhost:5000/register", {
@@ -135,8 +116,10 @@ const Login = () => {
         password,
       });
 
+     
+
       if (response.data.success) {
-        toast.success("Registration successful! Please login. 🎉");
+        toast.success("Registration successful!");
         setIsRegistering(false);
         setName("");
         setUsername("");
@@ -145,238 +128,151 @@ const Login = () => {
         setDob("");
         setPassword("");
         setConfirmPassword("");
+        setWarnMessage(""); // Clear warning message on successful registration
       } else {
-        toast.error(response.data.message || "Registration failed");
+        setWarnMessage(response.data.message || "Registration failed.");
       }
     } catch (err) {
-      toast.error("Server error. Please try again.");
-    } finally {
-      setIsLoading(false);
+      setWarnMessage("Server error. Please try again later.");
     }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
+    <div className="container-fluid p-5">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        className="custom-toast-container"
+      />
+      <div
+        className="row d-flex justify-content-center align-items-center"
+        style={{ height: "80vh" }}
+      >
+        {/* Left Column - Image */}
+        <div className="col-12 col-md-6 d-flex justify-content-center mb-4 mb-md-0">
           <img
-            src="https://th.bing.com/th/id/OIP.jGbcvExsAa9UWVd_nUHjPAHaH0?w=197&h=208&c=7&r=0&o=5&dpr=1.3&pid=1.7"
-            alt="Hotel Logo"
-            className="logo"
+            src="https://static.vecteezy.com/system/resources/previews/023/642/083/original/booking-hotel-tiny-people-search-and-choose-hotel-or-apartment-online-reservation-application-interface-tourist-and-business-trip-modern-flat-cartoon-style-illustration-on-white-background-vector.jpg"
+            className="img-fluid"
+            alt="Login/Register"
           />
-          <h2>{isRegistering ? "Create Account" : "Welcome Back"}</h2>
-          <p>
-            {isRegistering
-              ? "Join us for an amazing experience"
-              : "Sign in to continue to Stay & Dine"}
-          </p>
         </div>
 
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
+        {/* Right Column - Form */}
+        <div className="col-12 col-md-6">
+          <div className="login-card">
+            <h4 className="h4">{isRegistering ? "Register" : "Login"}</h4>
 
-        {warnMessage && (
-          <div className="error-message">
-            <i className="bi bi-exclamation-circle"></i> {warnMessage}
-          </div>
-        )}
+            {/* Display warning message */}
+            {warnMessage && (
+              <div className="alert alert-warning">{warnMessage}</div>
+            )}
 
-        <div className="login-form">
-          {isRegistering ? (
-            <>
-              <div className="form-group">
-                <label>Full Name</label>
+            {isRegistering ? (
+              <>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Enter your full name"
+                  className="form-control mb-3"
+                  placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Username</label>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Choose a username"
+                  className="form-control mb-3"
+                  placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Email Address</label>
                 <input
                   type="email"
-                  className="form-control"
-                  placeholder="Enter your email"
+                  className="form-control mb-3"
+                  placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Phone Number</label>
                 <input
-                  type="tel"
-                  className="form-control"
-                  placeholder="Enter 10-digit phone number"
+                  type="number"
+                  className="form-control mb-3"
+                  placeholder="Phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  maxLength={10}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Date of Birth</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="form-control mb-3"
+                  placeholder="Date of Birth"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Password</label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  className="form-control"
-                  placeholder="Create a password"
+                  type="password"
+                  className="form-control mb-3"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <span
-                  className="input-icon"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
-                </span>
-              </div>
-
-              <div className="form-group">
-                <label>Confirm Password</label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  className="form-control"
-                  placeholder="Confirm your password"
+                  type="password"
+                  className="form-control mb-3"
+                  placeholder="Confirm Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
-              </div>
-
-              <button
-                className="btn btn-primary"
-                onClick={handleRegister}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Creating Account...
-                  </>
-                ) : (
-                  "Create Account"
-                )}
-              </button>
-
-              <p className="switch-mode">
-                Already have an account?{" "}
-                <a href="#" onClick={() => setIsRegistering(false)}>
-                  Sign In
-                </a>
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="form-group">
-                <label>Username</label>
+                <button
+                  className="btn btn-primary w-100 mb-3"
+                  onClick={handleRegister}
+                >
+                  Register
+                </button>
+                <p className="text-center">
+                  Already have account?{" "}
+                  <a href="#" onClick={() => setIsRegistering(false)}>
+                    Login
+                  </a>
+                </p>
+              </>
+            ) : (
+              <>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Enter your username"
+                  className="form-control mb-3"
+                  placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Password</label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  className="form-control"
-                  placeholder="Enter your password"
+                  type="password"
+                  className="form-control mb-3"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <span
-                  className="input-icon"
-                  onClick={() => setShowPassword(!showPassword)}
+                <button
+                  className="btn btn-primary w-100 mb-3"
+                  onClick={handleLogin}
                 >
-                  <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
-                </span>
-              </div>
-
-              <div className="forgot-password">
-                <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Forgot password feature coming soon!"); }}>
-                  Forgot Password?
-                </a>
-              </div>
-
-              <button
-                className="btn btn-primary"
-                onClick={handleLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Signing In...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-
-              <div className="social-divider">
-                <span>or continue with</span>
-              </div>
-
-              <div className="social-buttons">
-                <button className="social-btn facebook">
-                  <i className="bi bi-facebook"></i> Facebook
+                  Sign in
                 </button>
-                <button className="social-btn google">
-                  <i className="bi bi-google"></i> Google
-                </button>
-              </div>
+                <p className="text-center">
+                  Don't have account?{" "}
+                  <a href="#" onClick={() => setIsRegistering(true)}>
+                    Register
+                  </a>
+                </p>
+              </>
+            )}
 
-              <p className="switch-mode">
-                Don't have an account?{" "}
-                <a href="#" onClick={() => setIsRegistering(true)}>
-                  Register Now
-                </a>
-              </p>
-            </>
-          )}
-
-          {error && <div className="alert alert-danger mt-2">{error}</div>}
+            {error && <div className="alert alert-danger mt-2">{error}</div>}
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };
