@@ -7,23 +7,11 @@ const WebSocket = require("ws"); // ✅ Import WebSocket
 
 const twilio = require("twilio");
 
-require("dotenv").config({ path: __dirname + '/.env' });
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-const allowedOrigins = [
-  process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-  'http://localhost:4173'
-];
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true); // be permissive during local dev
-  },
-  credentials: true
-}));
+app.use(cors());
 
 const multer = require("multer");
 const path = require("path");
@@ -37,22 +25,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(upload.single('image')); // For single file upload
+
 const wss = new WebSocket.Server({ port: 8080 });
 
-// Initialize Twilio only if valid credentials are provided
-let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID.startsWith('AC') && process.env.TWILIO_AUTH_TOKEN) {
-  try {
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    console.log("Twilio initialized successfully");
-  } catch (err) {
-    console.log("Twilio initialization failed, SMS features disabled:", err.message);
-  }
-} else {
-  console.log("Twilio credentials not configured, SMS features disabled");
-}
 
-// Initialize email transporter
+
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -60,255 +44,32 @@ const transporter = nodemailer.createTransport({
     pass: process.env.PWD,
   },
   tls: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, // ✅ Ignore SSL certificate issues
   },
   secure: false,
-  connectionTimeout: 10000,
+connectionTimeout: 10000, // 10 seconds
 });
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.get("/health", (req, res) => {
-  res.json({
-    ok: true,
-    dbHealthy: dbHealthy,
-    dbHost: process.env.DB_HOST || null,
-    dbName: process.env.DB_NAME || null
+
+
+
+
+
+const db = mysql.createConnection({
+    host: process.env.DB_HOST ,
+    user: process.env.DB_USER ,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
   });
+
+
+
+db.connect(err => {
+  if (err) console.log(err);
+  else console.log("Database Connected");
 });
-
-
-
-
-
-// DB health flag
-let dbHealthy = false;
-
-// First connect without database to create it
-const dbInit = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
-
-// Create database if not exists
-dbInit.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME}`, (err) => {
-  if (err) {
-    console.error("Error creating database:", err.message);
-    return;
-  } else {
-    console.log("Database created or already exists");
-  }
-  
-  // Now connect to the database
-  dbInit.changeUser({ database: process.env.DB_NAME }, (err) => {
-    if (err) {
-      console.error("Error switching to database:", err.message);
-      dbHealthy = false;
-      return;
-    } else {
-      console.log("Connected to database");
-    }
-    
-    // Create tables
-    createTables(dbInit);
-
-    // Upgrade to pooled connections for better performance and concurrency
-    const pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
-    });
-    // verify connectivity
-    pool.getConnection((perr, conn) => {
-      if (perr) {
-        console.error("Database pool connection failed:", perr.message);
-        dbHealthy = false;
-      } else {
-        dbHealthy = true;
-        conn.release();
-        console.log("Database pool initialized");
-      }
-    });
-    db = pool;
-  });
-});
-
-function createTables(db) {
-  // Users table
-  db.query(`CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    dob DATE,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    otp VARCHAR(6) DEFAULT NULL,
-    otp_expiry DATETIME DEFAULT NULL
-  )`, (err) => { if (err) console.log("Users table error:", err.message); });
-
-  // Branches table
-  db.query(`CREATE TABLE IF NOT EXISTS branches (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    location VARCHAR(100) NOT NULL,
-    contact_no VARCHAR(20),
-    description TEXT,
-    home_img VARCHAR(255),
-    hotel_front_img VARCHAR(255),
-    hotel_img VARCHAR(255),
-    hotel_img2 VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => { if (err) console.log("Branches table error:", err.message); });
-
-  // Tables table
-  db.query(`CREATE TABLE IF NOT EXISTS tables (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    branch_id INT NOT NULL,
-    table_name VARCHAR(50) NOT NULL,
-    table_type VARCHAR(20) DEFAULT '2-pair',
-    chairs_list JSON,
-    booked BOOLEAN DEFAULT FALSE,
-    price DECIMAL(10,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
-  )`, (err) => { if (err) console.log("Tables table error:", err.message); });
-
-  // Chairs table
-  db.query(`CREATE TABLE IF NOT EXISTS chairs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    table_id INT NOT NULL,
-    chair_name VARCHAR(20) NOT NULL,
-    FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
-  )`, (err) => { if (err) console.log("Chairs table error:", err.message); });
-
-  // Bookings table
-  db.query(`CREATE TABLE IF NOT EXISTS bookings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    hotel_id INT NOT NULL,
-    table_id INT,
-    date DATE NOT NULL,
-    booking_time DATETIME NOT NULL,
-    food_status VARCHAR(50) DEFAULT 'not ordered',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (hotel_id) REFERENCES branches(id) ON DELETE CASCADE,
-    FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE SET NULL
-  )`, (err) => { if (err) console.log("Bookings table error:", err.message); });
-
-  // Foods table
-  db.query(`CREATE TABLE IF NOT EXISTS foods (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    description TEXT,
-    image VARCHAR(255),
-    calories VARCHAR(20),
-    proteins VARCHAR(20),
-    fibers VARCHAR(20),
-    available BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => { if (err) console.log("Foods table error:", err.message); });
-
-  // Coupons table
-  db.query(`CREATE TABLE IF NOT EXISTS coupons (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    coupon_code VARCHAR(50) UNIQUE NOT NULL,
-    discount DECIMAL(5,2) NOT NULL,
-    reason VARCHAR(100),
-    expiry_date DATE NOT NULL,
-    is_used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`, (err) => { if (err) console.log("Coupons table error:", err.message); });
-
-  // User coupons table
-  db.query(`CREATE TABLE IF NOT EXISTS user_coupons (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    coupon_code VARCHAR(50) NOT NULL,
-    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`, (err) => { if (err) console.log("User coupons table error:", err.message); });
-
-  // Notifications table
-  db.query(`CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => { if (err) console.log("Notifications table error:", err.message); });
-
-  console.log("All tables created successfully!");
-
-  // Add performance indexes (ignore errors if they already exist)
-  const indexStatements = [
-    "ALTER TABLE users ADD INDEX idx_users_username (username)",
-    "ALTER TABLE users ADD INDEX idx_users_email (email)",
-    "ALTER TABLE branches ADD INDEX idx_branches_location (location)",
-    "ALTER TABLE tables ADD INDEX idx_tables_branch (branch_id)",
-    "ALTER TABLE bookings ADD INDEX idx_bookings_user (user_id)",
-    "ALTER TABLE bookings ADD INDEX idx_bookings_hotel_date (hotel_id, date)",
-    "ALTER TABLE orders ADD INDEX idx_orders_user (user_id)",
-    "ALTER TABLE order_items ADD INDEX idx_order_items_order (order_id)",
-    "ALTER TABLE foods ADD INDEX idx_foods_category (category)"
-  ];
-  indexStatements.forEach(stmt => {
-    db.query(stmt, () => {});
-  });
-  
-  // Insert default admin if not exists
-  db.query("SELECT * FROM users WHERE username = 'admin'", (err, results) => {
-    if (results.length === 0) {
-      bcrypt.hash("admin123", 10).then(hash => {
-        db.query("INSERT INTO users (name, username, email, password, role) VALUES (?, ?, ?, ?, ?)", 
-          ["Admin", "admin", "admin@hotel.com", hash, "admin"], 
-          (err) => { if (!err) console.log("Default admin user created!"); });
-      });
-    }
-  });
-  
-  // Insert sample branches if empty
-  db.query("SELECT COUNT(*) as count FROM branches", (err, results) => {
-    if (err || !results || !results[0]) return;
-    if (results[0].count === 0) {
-      db.query("INSERT INTO branches (name, location, contact_no, description) VALUES ?", 
-        [[
-          ["The Lalit New Delhi", "New Delhi", "01144447777", "Luxury business hotel in the heart of the capital"],
-          ["Vivanta Kolkata", "Kolkata", "03340001234", "Premium city hotel with contemporary design"],
-          ["The Park Hyderabad", "Hyderabad", "04027701234", "Lifestyle hotel with vibrant nightlife"]
-        ]], 
-        (err) => { if (!err) console.log("Sample branches added!"); });
-    }
-  });
-  
-  // Insert sample foods if empty
-  db.query("SELECT COUNT(*) as count FROM foods", (err, results) => {
-    if (err || !results || !results[0]) return;
-    if (results[0].count === 0) {
-      db.query("INSERT INTO foods (name, category, price, description, calories, proteins, fibers) VALUES ?", 
-        [[
-          ["Grilled Chicken", "Main Course", 250.00, "Tender grilled chicken with herbs", "450", "35", "2"],
-          ["Caesar Salad", "Starter", 150.00, "Fresh romaine lettuce with caesar dressing", "200", "8", "4"],
-          ["Chocolate Cake", "Dessert", 120.00, "Rich chocolate lava cake", "350", "5", "2"],
-          ["Fresh Juice", "Beverage", 80.00, "Freshly squeezed orange juice", "100", "1", "0"]
-        ]], 
-        (err) => { if (!err) console.log("Sample foods added!"); });
-    }
-  });
-}
-
-// Export db for use in routes
-let db = dbInit;
 
 app.post('/register', async (req, res) => {
   const { name, username, email, phone, dob, password } = req.body;
@@ -363,27 +124,19 @@ app.post('/check-username', (req, res) => {
 
 
   app.get("/branches", (req, res) => {
-    // Serve demo data if DB isn’t healthy to keep UI working
-    if (!dbHealthy) {
-      return res.status(200).json([
-        { id: 1, name: "The Lalit New Delhi", location: "New Delhi", contact_no: "+91 98111 77777", hotel_front_img: "https://images.unsplash.com/photo-1502672023488-70e25813eb80?q=80&w=1200&auto=format&fit=crop" },
-        { id: 2, name: "Vivanta Kolkata", location: "Kolkata", contact_no: "+91 98301 23456", hotel_front_img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1200&auto=format&fit=crop" },
-        { id: 3, name: "The Park Hyderabad", location: "Hyderabad", contact_no: "+91 98450 12345", hotel_front_img: "https://images.unsplash.com/photo-1496417263034-38ec4f0b665a?q=80&w=1200&auto=format&fit=crop" },
-        { id: 4, name: "Taj Mahal Palace", location: "Mumbai", contact_no: "+91 99200 12345", hotel_front_img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop" },
-        { id: 5, name: "Oberoi Amarvilas", location: "Agra", contact_no: "+91 98112 34567", hotel_front_img: "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?q=80&w=1200&auto=format&fit=crop" },
-        { id: 6, name: "ITC Grand Chola", location: "Chennai", contact_no: "+91 99400 00044", hotel_front_img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1200&auto=format&fit=crop" },
-        { id: 7, name: "The Leela Palace Udaipur", location: "Udaipur", contact_no: "+91 98290 45530", hotel_front_img: "https://images.unsplash.com/photo-1528909514045-2fa4ac7a08ba?q=80&w=1200&auto=format&fit=crop" },
-        { id: 8, name: "Rambagh Palace", location: "Jaipur", contact_no: "+91 98151 60200", hotel_front_img: "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=1200&auto=format&fit=crop" },
-        { id: 9, name: "JW Marriott Juhu", location: "Mumbai", contact_no: "+91 99673 30000", hotel_front_img: "https://images.unsplash.com/photo-1496412705862-e0088f16f791?q=80&w=1200&auto=format&fit=crop" }
-      ]);
-    }
     const sql = "SELECT * FROM branches"; 
+    
     db.query(sql, (err, result) => {
       if (err) {
         console.error("Error fetching branches:", err); 
         return res.status(500).json({ message: "Internal Server Error" });
       }
-      res.status(200).json(result || []); 
+  
+      if (!result.length) {
+        return res.status(404).json({ message: "No branches found" });
+      }
+  
+      res.status(200).json(result); 
     });
   });
   
@@ -409,7 +162,7 @@ app.post("/branches", upload.fields([
   const hotel_img2 = req.files["hotel_img2"] ? `/uploads/${req.files["hotel_img2"][0].filename}` : null;
 
   db.query(
-    "INSERT INTO branches (name, location, contact_no, description, home_img, hotel_front_img, hotel_img, hotel_img2) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO branches (name, location, contactNo, description, home_img, hotel_front_img, hotel_img, hotel_img2) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     [name, location, contactNo, description, home_img, hotel_front_img, hotel_img, hotel_img2],
     (err, result) => {
       if (err){ 
@@ -440,7 +193,7 @@ app.put("/branches/:id", upload.fields([
     const hotel_img2 = req.files["hotel_img2"] ? `/uploads/${req.files["hotel_img2"][0].filename}` : existingImages.hotel_img2;
 
     db.query(
-      "UPDATE branches SET name=?, location=?, contact_no=?, description=?, home_img=?, hotel_front_img=?, hotel_img=?, hotel_img2=? WHERE id=?",
+      "UPDATE branches SET name=?, location=?, contactNo=?, description=?, home_img=?, hotel_front_img=?, hotel_img=?, hotel_img2=? WHERE id=?",
       [name, location, contactNo, description, home_img, hotel_front_img, hotel_img, hotel_img2, id],
       (err, result) => {
         if (err) return res.status(500).json(err);
@@ -982,169 +735,6 @@ app.delete('/coupons/:couponCode', (req, res) => {
 
 
 
-// Initialize database - Add OTP columns if not exist
-app.get('/init-otp-columns', (req, res) => {
-  const checkSql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'otp'";
-  db.query(checkSql, [process.env.DB_NAME], (err, results) => {
-    if (err) return res.json({ success: false, message: "Database error" });
-    
-    if (results.length === 0) {
-      const alterSql = "ALTER TABLE users ADD COLUMN otp VARCHAR(6) NULL, ADD COLUMN otp_expiry DATETIME NULL";
-      db.query(alterSql, (err) => {
-        if (err) return res.json({ success: false, message: "Failed to add OTP columns" });
-        return res.json({ success: true, message: "OTP columns added successfully" });
-      });
-    } else {
-      return res.json({ success: true, message: "OTP columns already exist" });
-    }
-  });
+app.listen(5000, () => {
+  console.log("Server running on port 5000");
 });
-
-// Forgot Password - Verify User
-app.post('/forgot-password-verify', (req, res) => {
-  const { username, email } = req.body;
-  
-  const sql = "SELECT * FROM users WHERE username = ? OR email = ?";
-  db.query(sql, [username, email], async (err, results) => {
-    if (err) return res.json({ success: false, message: "Database error" });
-    if (results.length === 0) return res.json({ success: false, message: "User not found" });
-    
-    const user = results[0];
-    
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store OTP temporarily (in real app, use a separate table or Redis)
-    // For simplicity, we'll send OTP via email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "Password Reset OTP",
-      text: `Your OTP for password reset is: ${otp}\n\nThis OTP is valid for 10 minutes.`,
-    };
-
-    transporter.sendMail(mailOptions, (error) => {
-      if (error) {
-        console.error("Email error:", error);
-        return res.json({ success: false, message: "Failed to send OTP" });
-      }
-      
-      // Store OTP in database (add otp and otp_expiry columns to users table)
-      const updateSql = "UPDATE users SET otp = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id = ?";
-      db.query(updateSql, [otp, user.id], (err) => {
-        if (err) return res.json({ success: false, message: "Failed to store OTP" });
-        res.json({ success: true, message: "OTP sent to your email", userId: user.id });
-      });
-    });
-  });
-});
-
-// Verify OTP
-app.post('/verify-otp', (req, res) => {
-  const { userId, otp } = req.body;
-  
-  const sql = "SELECT * FROM users WHERE id = ? AND otp = ? AND otp_expiry > NOW()";
-  db.query(sql, [userId, otp], (err, results) => {
-    if (err) return res.json({ success: false, message: "Database error" });
-    if (results.length === 0) return res.json({ success: false, message: "Invalid or expired OTP" });
-    
-    res.json({ success: true, message: "OTP verified" });
-  });
-});
-
-// Reset Password
-app.post('/reset-password', async (req, res) => {
-  const { userId, newPassword } = req.body;
-  
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  
-  const sql = "UPDATE users SET password = ?, otp = NULL, otp_expiry = NULL WHERE id = ?";
-  db.query(sql, [hashedPassword, userId], (err, result) => {
-    if (err) return res.json({ success: false, message: "Failed to reset password" });
-    res.json({ success: true, message: "Password reset successful" });
-  });
-});
-
-// Resend OTP
-app.post('/resend-otp', (req, res) => {
-  const { userId } = req.body;
-  
-  const sql = "SELECT * FROM users WHERE id = ?";
-  db.query(sql, [userId], async (err, results) => {
-    if (err || results.length === 0) return res.json({ success: false, message: "User not found" });
-    
-    const user = results[0];
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "Password Reset OTP (Resent)",
-      text: `Your new OTP for password reset is: ${otp}\n\nThis OTP is valid for 10 minutes.`,
-    };
-
-    transporter.sendMail(mailOptions, (error) => {
-      if (error) return res.json({ success: false, message: "Failed to send OTP" });
-      
-      const updateSql = "UPDATE users SET otp = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id = ?";
-      db.query(updateSql, [otp, user.id], (err) => {
-        if (err) return res.json({ success: false, message: "Failed to store OTP" });
-        res.json({ success: true, message: "OTP resent successfully" });
-      });
-    });
-  });
-});
-
-app.get('/init-otp-columns', (req, res) => {
-  const alterQuery = `ALTER TABLE users ADD COLUMN IF NOT EXISTS otp VARCHAR(6) DEFAULT NULL, ADD COLUMN IF NOT EXISTS otp_expiry DATETIME DEFAULT NULL`;
-  db.query(alterQuery, (err) => { if (err) console.log("OTP columns might already exist:", err.message); res.json({ success: true }); });
-});
-
-app.post('/forgot-password-verify', (req, res) => {
-  const { username, email } = req.body;
-  const sql = "SELECT * FROM users WHERE username = ? AND email = ?";
-  db.query(sql, [username, email], async (err, results) => {
-    if (err || results.length === 0) return res.json({ success: false, message: "User not found" });
-    const user = results[0];
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    const updateSql = "UPDATE users SET otp = ?, otp_expiry = ? WHERE id = ?";
-    db.query(updateSql, [otp, otpExpiry, user.id], async (err) => {
-      if (err) return res.json({ success: false, message: "Failed to generate OTP" });
-      const mailOptions = { from: process.env.E_MAIL, to: email, subject: "Password Reset OTP", text: `Your OTP is: ${otp}. Valid for 10 minutes.` };
-      transporter.sendMail(mailOptions, (error) => { if (error) return res.json({ success: false, message: "Failed to send OTP" }); res.json({ success: true, userId: user.id }); });
-    });
-  });
-});
-
-app.post('/verify-otp', (req, res) => {
-  const { userId, otp } = req.body;
-  const sql = "SELECT * FROM users WHERE id = ? AND otp = ? AND otp_expiry > NOW()";
-  db.query(sql, [userId, otp], (err, results) => { if (err || results.length === 0) return res.json({ success: false, message: "Invalid or expired OTP" }); res.json({ success: true }); });
-});
-
-app.post('/resend-otp', (req, res) => {
-  const { userId } = req.body;
-  const sql = "SELECT * FROM users WHERE id = ?";
-  db.query(sql, [userId], async (err, results) => {
-    if (err || results.length === 0) return res.json({ success: false, message: "User not found" });
-    const user = results[0];
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    const updateSql = "UPDATE users SET otp = ?, otp_expiry = ? WHERE id = ?";
-    db.query(updateSql, [otp, otpExpiry, user.id], async (err) => {
-      if (err) return res.json({ success: false, message: "Failed to regenerate OTP" });
-      const mailOptions = { from: process.env.E_MAIL, to: user.email, subject: "Password Reset OTP - Resent", text: `Your new OTP is: ${otp}. Valid for 10 minutes.` };
-      transporter.sendMail(mailOptions, (error) => { if (error) return res.json({ success: false, message: "Failed to send OTP" }); res.json({ success: true }); });
-    });
-  });
-});
-
-app.post('/reset-password', async (req, res) => {
-  const { userId, newPassword } = req.body;
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  const sql = "UPDATE users SET password = ?, otp = NULL, otp_expiry = NULL WHERE id = ?";
-  db.query(sql, [hashedPassword, userId], (err) => { if (err) return res.json({ success: false, message: "Failed to reset password" }); res.json({ success: true }); });
-});
-
-app.listen(5000, () => { console.log("Server running on port 5000"); });

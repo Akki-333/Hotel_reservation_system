@@ -1,32 +1,24 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Table, Button, Container, Spinner } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId"); // Assuming user is stored in localStorage
-  const navigate = useNavigate();
-  const notified = useRef(false);
 
 
 
   useEffect(() => {
     if (!userId) {
-      if (!notified.current) {
-        toast.error("You must be logged in to view bookings!");
-        notified.current = true;
-      }
-      setLoading(false);
-      setTimeout(() => navigate("/login"), 600);
+      toast.error("You must be logged in to view bookings!");
       return;
     }
 
     axios
-      .get(`/my_bookings/${userId}`)
+      .get(`http://localhost:5000/my_bookings/${userId}`)
       .then((response) => {
         setBookings(response.data);
         setLoading(false);
@@ -42,7 +34,7 @@ const MyBookings = () => {
     if (!window.confirm("Are you sure you want to delete this history?")) return;
 
     axios
-      .delete(`/cancel_booking/${bookingId}`)
+      .delete(`http://localhost:5000/cancel_booking/${bookingId}`)
       .then(() => {
         toast.success("Booking cancelled successfully!");
         setBookings(bookings.filter((b) => b.booking_id !== bookingId));

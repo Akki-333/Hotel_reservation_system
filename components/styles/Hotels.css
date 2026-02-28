@@ -1,15 +1,13 @@
 /* Custom CSS for floating effect */
 .floating-card {
     position: relative;
-    box-shadow: 0 10px 25px rgba(13, 38, 76, 0.12);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    background: #ffffff;
+    transition: transform 0.3s ease;
   }
   
   .floating-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 40px rgba(13, 38, 76, 0.18);
+    transform: translateY(-10px); /* Move the card upwards on hover */
   }
   
   .card-img-top {
@@ -20,43 +18,11 @@
   }
   
   .card-body {
-    background-color: #fdfefe;
+    background-color: #f8f9fa;
     border-radius: 0 0 10px 10px;
   }
   
   .btn {
-    width: 100%;
-  }
-
-  /* Search input polish */
-  .form-control {
-    height: 48px;
-    border-radius: 10px;
-    border: 1px solid rgba(15, 52, 96, 0.15);
-    box-shadow: 0 2px 10px rgba(15, 52, 96, 0.05);
-  }
-
-  .form-control:focus {
-    border-color: #0f3460;
-    box-shadow: 0 0 0 0.2rem rgba(15, 52, 96, 0.15);
-  }
-
-  /* Placeholder glow blocks */
-  .placeholder {
-    display: inline-block;
-    background: linear-gradient(90deg, #eee, #f5f5f5, #eee);
-    background-size: 200% 100%;
-    animation: shimmer 1.2s infinite;
-    border-radius: 8px;
-    min-height: 1rem;
-  }
-  
-  .placeholder-glow .placeholder {
-    animation: shimmer 1.2s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    width: 100%; /* Make the "Book" button full-width */
   }
   
