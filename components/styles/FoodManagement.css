@@ -1,0 +1,19 @@
+.container {
+    padding: 2rem;
+    border-radius: 15px;
+}
+
+.table {
+    background: #ffffff;
+}
+
+h4 {
+    text-align: center;
+}
+
+form {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05);
+}

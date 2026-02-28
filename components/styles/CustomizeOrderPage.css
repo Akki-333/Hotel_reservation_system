@@ -1,0 +1,22 @@
+body {
+    background: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+}
+
+.card {
+    border-radius: 15px;
+    background: #ffffff;
+}
+
+.form-select, .form-control {
+    border-radius: 10px;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border: none;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
