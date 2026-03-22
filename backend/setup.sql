@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS coupons (
 
 -- Insert default admin user (password: admin123)
 INSERT INTO users (name, username, email, phone, password, role) 
-VALUES ('Admin', 'admin', 'admin@hotel.com', '1234567890', '$2b$10$rBV2JzS9V7rKr8h3P5K5YOX5K5K5K5K5K5K5K5K5K5K5K5K5K5K5K', 'admin')
+VALUES ('Admin', 'admin', 'admin@hotel.com', '1234567890', '$2b$10$Ci73JOvLI4MqO/znHb9NfurM7i9R2oaM0.423KnHLzAlYGpW06joy', 'admin')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- Insert sample branches

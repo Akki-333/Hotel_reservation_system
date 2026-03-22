@@ -18,7 +18,7 @@ const BookingForm = () => {
   });
   
   const location = useLocation();
-  const selectedHotel = location.state?.selectedHotel;
+  const [selectedHotel, setSelectedHotel] = useState(location.state?.selectedHotel || null);
   const userId = localStorage.getItem('userId');
   const [tables, setTables] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState("");
@@ -79,7 +79,17 @@ const handleOrderChange = (e) => {
   setOrder({ ...order, [name]: value });
 };
 
+  // Fetch the default hotel (Stay & Dine) if not passed via navigation state
   useEffect(() => {
+    if (!selectedHotel) {
+      axios.get("http://localhost:5000/branches")
+        .then(res => {
+          if (res.data && res.data.length > 0) {
+            setSelectedHotel(res.data[0]);
+          }
+        })
+        .catch(err => console.error("Failed to fetch default hotel", err));
+    }
   }, [selectedHotel]);
 
   useEffect(() => {

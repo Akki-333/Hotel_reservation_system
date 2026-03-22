@@ -1,183 +1,178 @@
-import React, { useState, useContext } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Carousel from "react-bootstrap/Carousel";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/Home.css";
-import FoodItem from "../Foods/FoodItem";
-import { StoreContext } from "../Foods/StoreContext";
-import src from "../../src/assets/Reservations.jpg";
+import api from "../../src/config/api";
 
-const HomePage = () => {
-  const [category, setCategory] = useState("All");
-  const { food_list } = useContext(StoreContext);
+const SafeCategoryDisplay = () => {
+  const navigate = useNavigate();
+  const [foods, setFoods] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeCat, setActiveCat] = React.useState("All");
+
+  React.useEffect(() => {
+    api.get("/get-foods")
+      .then(res => { setFoods(res.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
+      <div className="loader-dots"><span>.</span><span>.</span><span>.</span></div>
+    </div>
+  );
+
+  if (foods.length === 0) return (
+    <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8", background: "#f8fafc", borderRadius: "24px" }}>
+      <div style={{ fontSize: "3rem", marginBottom: "16px" }}>🍽️</div>
+      <p style={{ fontWeight: 700 }}>Our chef is preparing the first menu.</p>
+      <p style={{ fontSize: ".85rem" }}>Please check back in a few moments.</p>
+    </div>
+  );
+
+  const categories = ["All", ...new Set(foods.map(f => f.category || "General").filter(Boolean))];
+  const filtered = activeCat === "All" ? foods : foods.filter(f => (f.category || "General") === activeCat);
 
   return (
-    <div>
-      {/* Carousel Section */}
-      <div className="container">
-        <Carousel>
-          {["Welcome to Our Hotel", "Book Your Stay Now"].map(
-            (title, index) => (
-              <Carousel.Item key={index}>
-                <img className="d-block w-100" src={src} alt={title} />
-
-                <Carousel.Caption className="carousel-text">
-                  <h3>{title}</h3>
-                  <p>
-                    {index === 0
-                      ? "Experience luxury and comfort."
-                      : "Best deals available."}
-                  </p>
-                </Carousel.Caption>
-              </Carousel.Item>
-            )
-          )}
-        </Carousel>
+    <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
+      {/* ── CUISINE SELECETOR (Flex-box Ribbon) ── */}
+      <div style={{ 
+        display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "12px",
+        scrollbarWidth: "none", "-ms-overflow-style": "none" 
+      }} className="cuisine-ribbon">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setActiveCat(cat)}
+            style={{
+              padding: "12px 28px", borderRadius: "14px", border: "none", cursor: "pointer",
+              fontWeight: 800, fontSize: ".9rem", transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)",
+              background: activeCat === cat ? "#1e3a8a" : "#fff",
+              color: activeCat === cat ? "#fff" : "#475569",
+              boxShadow: activeCat === cat ? "0 10px 20px rgba(30,58,138,.2)" : "0 4px 12px rgba(0,0,0,.03)",
+              border: `1.5px solid ${activeCat === cat ? "#1e3a8a" : "#e2e8f0"}`,
+              whiteSpace: "nowrap"
+            }}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
-      {/* Hotel Content */}
-      <div className="container text-center my-5">
-        <h2>Discover Our Hotel</h2>
-        <p>
-          Our hotel offers premium rooms, fine dining, and world-class amenities
-          to make your stay unforgettable.
-        </p>
-      </div>
-
-      {/* Explore Menu Section */}
-      <div className="explore-menu" id="explore-menu">
-        <h1>Explore our menu</h1>
-        <p className="explore-menu-text">
-          Choose from a diverse menu featuring a delectable array of dishes. Our
-          mission is to satisfy your cravings and elevate your dining
-          experience, one delicious meal at a time.
-        </p>
-        <div className="explore-menu-list"></div>
-        <hr />
-      </div>
-
-      {/* Food Display Section */}
-      <div className="food-display" id="food-display">
-        <h2> Delicious Dishes</h2>
-        <div className="food-display-list">
-          {food_list.map((item) =>
-            category === "All" || category === item.food_category ? (
-              <FoodItem
-                key={item.food_id}
-                image={item.food_image}
-                name={item.food_name}
-                desc={item.food_desc}
-                price={item.food_price}
-                id={item.food_id}
-                calories={item.food_calories} // ✅ Add this
-                proteins={item.food_proteins}
+      {/* ── FOOD GRID (Dynamic Flex-Grid) ── */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "28px"
+      }}>
+        {filtered.map(item => (
+          <div key={item.id} className="food-card-modern" style={{
+            background: "#fff", borderRadius: "24px", border: "1px solid #e2e8f0",
+            overflow: "hidden", display: "flex", flexDirection: "column",
+            boxShadow: "0 10px 30px rgba(0,0,0,.04)", transition: "all 0.4s ease"
+          }}>
+            <div style={{ height: "200px", background: "#f1f5f9", position: "relative" }}>
+              <img 
+                src={item.image} 
+                alt={item.name} 
+                style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                onError={e => e.target.src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"} 
               />
-            ) : null
-          )}
-        </div>
+              <div style={{ 
+                position: "absolute", top: "12px", right: "12px", 
+                background: "rgba(255,255,255,.9)", backdropFilter: "blur(4px)",
+                padding: "4px 12px", borderRadius: "99px", fontWeight: 800, color: "#1e3a8a",
+                fontSize: ".85rem", boxShadow: "0 4px 12px rgba(0,0,0,.1)"
+              }}>
+                ₹{item.price}
+              </div>
+            </div>
+            <div style={{ padding: "24px", flexGrow: 1, display: "flex", flexDirection: "column" }}>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "1.15rem", fontWeight: 800, color: "#0f172a" }}>{item.name}</h4>
+              <p style={{ fontSize: ".88rem", color: "#64748b", lineHeight: 1.6, marginBottom: "20px" }}>
+                {item.description || "A signature specialty crafted with locally sourced fresh ingredients and premium spices."}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
-export default HomePage;
-
-import React, { useState, useContext } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Carousel from "react-bootstrap/Carousel";
-import "../styles/Home.css";
-import FoodItem from "../Foods/FoodItem";
-import { StoreContext } from "../Foods/StoreContext";
-const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1528605248644-14dd04022da1?q=80&w=1600&auto=format&fit=crop"
+const FEATURES = [
+  { icon: "🛎️", title: "Instant Dining", desc: "No more waiting. Book your perfect dining table in seconds directly." },
+  { icon: "🍽️", title: "Premium Catalog", desc: "Explore 100+ gourmet dishes by cuisine type and chef's recommendation." },
+  { icon: "🎟️", title: "Daily Rewards", desc: "Earn exclusive dining coupons and rewards on every successful booking." },
+  { icon: "📱", title: "Private History", desc: "Strictly private access to your own bookings, timings, and status." },
 ];
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1501117716987-c8e3f2d7ed2a?q=80&w=1600&auto=format&fit=crop";
 
 const HomePage = () => {
-  const [category, setCategory] = useState("All");
-  const { food_list } = useContext(StoreContext);
+  const navigate = useNavigate();
 
   return (
-    <div>
-      {/* Carousel Section */}
-      <div className="container">
-        <Carousel>
-          {["Book Your Table & Stay", "Experience Luxury Dining"].map(
-            (title, index) => (
-              <Carousel.Item key={index}>
-                <img
-                  className="d-block w-100"
-                  src={HERO_IMAGES[index]}
-                  alt={title}
-                  onError={(e) => {
-                    if (!e.target.dataset.fallback) {
-                      e.target.dataset.fallback = "1";
-                      e.target.src = FALLBACK_IMAGE;
-                    }
-                  }}
-                />
+    <div className="home-wrapper">
+      {/* ── HERO ── */}
+      <section className="home-hero">
+        <div className="home-hero-inner">
+          <div className="fade-in">
+            <div className="home-hero-badge">✨ Luxury Table Reservation Platform</div>
+            <h1>
+              Discover & Reserve<br />
+              <span className="highlight">Perfect Dining</span><br />
+              Experiences
+            </h1>
+            <p>Experience the finest hospitality — book your table in seconds and browse our curated world-class menu catalog.</p>
+            <div className="home-hero-buttons">
+              <a href="/booking-form" className="hero-btn-primary">🍽️ Start Your Reservation</a>
+            </div>
+          </div>
 
-                <Carousel.Caption className="carousel-text">
-                  <h3>{title}</h3>
-                  <p>
-                    {index === 0
-                      ? "Seamless reservations for rooms and fine dining."
-                      : "Curated menus, premium stays, and exclusive offers."}
-                  </p>
-                </Carousel.Caption>
-              </Carousel.Item>
-            )
-          )}
-        </Carousel>
-      </div>
-
-      {/* Hotel Content */}
-      <div className="container text-center my-5">
-        <h2>Discover Our Hotel</h2>
-        <p>
-          From curated rooms and suites to chef‑driven restaurants, Stay &amp; Dine
-          blends hospitality and gastronomy under one roof. Reserve your stay and
-          your table in a single, seamless flow.
-        </p>
-        <p>
-          Enjoy flexible check‑ins, seasonal menus, member‑only perks, and
-          concierge support. Whether it’s a weekend getaway or a family dinner,
-          we make every moment effortless and memorable.
-        </p>
-      </div>
-
-      {/* Explore Menu Section */}
-      <div className="explore-menu" id="explore-menu">
-        <h1>Explore our menu</h1>
-        <p className="explore-menu-text">
-          Choose from a diverse menu featuring a delectable array of dishes. Our
-          mission is to satisfy your cravings and elevate your dining
-          experience, one delicious meal at a time.
-        </p>
-        <div className="explore-menu-list"></div>
-        <hr />
-      </div>
-
-      {/* Food Display Section */}
-      <div className="food-display" id="food-display">
-        <h2> Delicious Dishes</h2>
-        <div className="food-display-list">
-          {food_list.map((item) =>
-            category === "All" || category === item.food_category ? (
-              <FoodItem
-                key={item.food_id}
-                image={item.food_image}
-                name={item.food_name}
-                desc={item.food_desc}
-                price={item.food_price}
-                id={item.food_id}
-                calories={item.food_calories} // ✅ Add this
-                proteins={item.food_proteins}
+          <div className="home-hero-visual slide-up">
+            <div className="hero-img-card">
+              <img
+                src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=800"
+                alt="Fine Dining"
               />
-            ) : null
-          )}
+            </div>
+            <div className="hero-stats-row">
+              {[
+                ["Stay&Dine", "Exclusive"],
+                ["10k+", "Bookings"],
+                ["4.9★", "Rating"],
+              ].map(([num, label]) => (
+                <div className="hero-stat" key={label}>
+                  <div className="hero-stat-num">{num}</div>
+                  <div className="hero-stat-label">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ── INTERACTIVE MENU ── */}
+      <section className="home-food-section">
+        <div className="home-food-inner">
+          <div className="section-title" style={{ textAlign: "left", marginBottom: "40px" }}>
+            <h2>🍴 Signature Menu Catalog</h2>
+            <p>Filter by cuisine and discover your next favorite dish. All items ready for reservation.</p>
+          </div>
+          <SafeCategoryDisplay />
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section className="home-features">
+        <div className="home-features-inner">
+          <div className="features-grid">
+            {FEATURES.map((f) => (
+              <div className="feature-card" key={f.title}>
+                <div className="feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

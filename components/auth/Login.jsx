@@ -1,276 +1,266 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../styles/Login.css";
-import "bootstrap/dist/css/bootstrap.min.css";
+import api from "../../src/config/api";
 
 const Login = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [tab, setTab] = useState("login"); // "login" | "register"
+  const [loading, setLoading] = useState(false);
+  const [warnMessage, setWarnMessage] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  // Login fields
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Register fields
   const [name, setName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState("");
-  const [password, setPassword] = useState("");
+  const [regPassword, setRegPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [warnMessage, setWarnMessage] = useState("");
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedIsLoggedIn = localStorage.getItem("isLoggedIn");
-    if (storedIsLoggedIn === "true") {
-      navigate("/");
-    }
+    if (localStorage.getItem("isLoggedIn") === "true") navigate("/");
   }, [navigate]);
 
-  const handleLogin = async () => {
-    setWarnMessage("");
+  const clearWarn = () => setWarnMessage("");
 
+  const handleLogin = async () => {
+    clearWarn();
     if (!username || !password) {
       setWarnMessage("Username and password are required.");
       return;
     }
-
+    setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/login", {
-        username,
-        password,
-      });
-         console.log(response);
-      if (response.data.success) {
+      const { data } = await api.post("/login", { username, password });
+      if (data.success) {
         localStorage.setItem("username", username);
-        localStorage.setItem("userId", response.data.id);
-        localStorage.setItem("role", response.data.role);
+        localStorage.setItem("userId", data.id);
+        localStorage.setItem("role", data.role);
         localStorage.setItem("isLoggedIn", "true");
-
-        // Redirect based on user role
-        if (response.data.role === "admin") {
-          window.location.href = "/admin_dashboard";
-        } else if (response.data.role === "user") {
-          window.location.href = "/";
-        } else {
-          navigate("/");
-        }
+        toast.success(`Welcome back, ${username}! 👋`);
+        setTimeout(() => {
+          window.location.href = data.role === "admin" ? "/admin_dashboard" : "/";
+        }, 600);
       } else {
-        toast.error("Invalid credentials");
+        setWarnMessage(data.message || "Invalid credentials. Please try again.");
       }
-    } catch (err) {
-      toast.error("Server error");
+    } catch {
+      setWarnMessage("Cannot reach the server. Is the backend running?");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async () => {
-    setWarnMessage("");
-
+    clearWarn();
     const phoneRegex = /^[0-9]{10}$/;
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-    if (
-      !name ||
-      !username ||
-      !email ||
-      !phone ||
-      !dob ||
-      !password ||
-      !confirmPassword
-    ) {
+    if (!name || !regUsername || !email || !phone || !dob || !regPassword || !confirmPassword) {
       setWarnMessage("All fields are required.");
       return;
     }
-
     if (!phoneRegex.test(phone)) {
-      setWarnMessage("Invalid phone number. Must be exactly 10 digits.");
+      setWarnMessage("Phone must be exactly 10 digits.");
       return;
     }
-
     if (!emailRegex.test(email)) {
-      setWarnMessage("Invalid email format. Example: example@gmail.com");
+      setWarnMessage("Invalid email format (e.g. user@gmail.com).");
       return;
     }
-
-    if (!passwordRegex.test(password)) {
-      setWarnMessage(
-        "Password must be at least 8 characters, include an uppercase letter, a lowercase letter, a number, and a special character."
-      );
+    if (!passwordRegex.test(regPassword)) {
+      setWarnMessage("Password: 8+ chars, uppercase, lowercase, number and special character.");
       return;
     }
-
-    if (password !== confirmPassword) {
+    if (regPassword !== confirmPassword) {
       setWarnMessage("Passwords do not match.");
       return;
     }
 
+    setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/register", {
-        name,
-        username,
-        email,
-        phone,
-        dob,
-        password,
+      const { data } = await api.post("/register", {
+        name, username: regUsername, email, phone, dob, password: regPassword,
       });
-
-     
-
-      if (response.data.success) {
-        toast.success("Registration successful!");
-        setIsRegistering(false);
-        setName("");
-        setUsername("");
-        setEmail("");
-        setPhone("");
-        setDob("");
-        setPassword("");
-        setConfirmPassword("");
-        setWarnMessage(""); // Clear warning message on successful registration
+      if (data.success) {
+        toast.success("Registration successful! Please log in. 🎉");
+        setTab("login");
+        setName(""); setRegUsername(""); setEmail(""); setPhone("");
+        setDob(""); setRegPassword(""); setConfirmPassword("");
       } else {
-        setWarnMessage(response.data.message || "Registration failed.");
+        setWarnMessage(data.message || "Registration failed. Username/email may already exist.");
       }
-    } catch (err) {
-      setWarnMessage("Server error. Please try again later.");
+    } catch {
+      setWarnMessage("Cannot reach the server. Is the backend running?");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const EyeIcon = () => (
+    <span className="field-icon" onClick={() => setShowPass((v) => !v)}>
+      {showPass ? "🙈" : "👁️"}
+    </span>
+  );
+
   return (
-    <div className="container-fluid p-5">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        className="custom-toast-container"
-      />
-      <div
-        className="row d-flex justify-content-center align-items-center"
-        style={{ height: "80vh" }}
-      >
-        {/* Left Column - Image */}
-        <div className="col-12 col-md-6 d-flex justify-content-center mb-4 mb-md-0">
-          <img
-            src="https://static.vecteezy.com/system/resources/previews/023/642/083/original/booking-hotel-tiny-people-search-and-choose-hotel-or-apartment-online-reservation-application-interface-tourist-and-business-trip-modern-flat-cartoon-style-illustration-on-white-background-vector.jpg"
-            className="img-fluid"
-            alt="Login/Register"
-          />
+    <div className="auth-page">
+      {/* ── LEFT HERO ── */}
+      <div className="auth-hero">
+        <div className="auth-hero-icon">🏨</div>
+        <h1>Welcome to <span>Stay&amp;Dine</span></h1>
+        <p>
+          Book premium hotel tables, explore curated menus and discover
+          exclusive rooms — all in one seamless platform.
+        </p>
+        <div className="auth-hero-features">
+          {[
+            ["🛎️", "Instant table reservations"],
+            ["🍽️", "Fine dining menus"],
+            ["🎟️", "Exclusive member coupons"],
+            ["📱", "Real-time booking updates"],
+          ].map(([icon, text]) => (
+            <div key={text} className="auth-hero-feature">
+              <span className="auth-feature-icon">{icon}</span>
+              {text}
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Right Column - Form */}
-        <div className="col-12 col-md-6">
-          <div className="login-card">
-            <h4 className="h4">{isRegistering ? "Register" : "Login"}</h4>
+      {/* ── RIGHT FORM ── */}
+      <div className="auth-form-panel">
+        <div className="auth-form-inner slide-up">
+          {/* Tabs */}
+          <div className="auth-toggle-tabs">
+            <button
+              className={`auth-tab${tab === "login" ? " active" : ""}`}
+              onClick={() => { setTab("login"); clearWarn(); }}
+            >Sign In</button>
+            <button
+              className={`auth-tab${tab === "register" ? " active" : ""}`}
+              onClick={() => { setTab("register"); clearWarn(); }}
+            >Create Account</button>
+          </div>
 
-            {/* Display warning message */}
-            {warnMessage && (
-              <div className="alert alert-warning">{warnMessage}</div>
-            )}
+          {/* Heading */}
+          <div className="auth-heading">
+            <h2>{tab === "login" ? "Sign in to your account" : "Create a new account"}</h2>
+            <p>{tab === "login" ? "Enter your credentials below" : "Fill in the details below"}</p>
+          </div>
 
-            {isRegistering ? (
-              <>
+          {/* Warning */}
+          {warnMessage && (
+            <div className="auth-alert warn">⚠️ {warnMessage}</div>
+          )}
+
+          {/* ── LOGIN FORM ── */}
+          {tab === "login" && (
+            <>
+              <div className="form-field">
                 <input
                   type="text"
-                  className="form-control mb-3"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="form-control mb-3"
-                  placeholder="Username"
+                  id="login-username"
+                  placeholder=" "
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 />
+                <label htmlFor="login-username">Username</label>
+              </div>
+              <div className="form-field">
                 <input
-                  type="email"
-                  className="form-control mb-3"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <input
-                  type="number"
-                  className="form-control mb-3"
-                  placeholder="Phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-                <input
-                  type="date"
-                  className="form-control mb-3"
-                  placeholder="Date of Birth"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                />
-                <input
-                  type="password"
-                  className="form-control mb-3"
-                  placeholder="Password"
+                  type={showPass ? "text" : "password"}
+                  id="login-password"
+                  placeholder=" "
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 />
-                <input
-                  type="password"
-                  className="form-control mb-3"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                <button
-                  className="btn btn-primary w-100 mb-3"
-                  onClick={handleRegister}
-                >
-                  Register
+                <label htmlFor="login-password">Password</label>
+                <EyeIcon />
+              </div>
+              <button
+                className="auth-submit-btn"
+                onClick={handleLogin}
+                disabled={loading}
+              >
+                {loading ? <><span className="btn-spinner" /> Signing in…</> : "Sign In →"}
+              </button>
+              <div className="auth-divider">or</div>
+              <p style={{ textAlign: "center", fontSize: ".88rem", color: "#64748b", marginTop: "8px" }}>
+                Don't have an account?{" "}
+                <button onClick={() => { setTab("register"); clearWarn(); }}
+                  style={{ color: "#2563eb", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
+                  Register here
                 </button>
-                <p className="text-center">
-                  Already have account?{" "}
-                  <a href="#" onClick={() => setIsRegistering(false)}>
-                    Login
-                  </a>
-                </p>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  className="form-control mb-3"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                <input
-                  type="password"
-                  className="form-control mb-3"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  className="btn btn-primary w-100 mb-3"
-                  onClick={handleLogin}
-                >
+              </p>
+            </>
+          )}
+
+          {/* ── REGISTER FORM ── */}
+          {tab === "register" && (
+            <>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <input type="text" id="reg-name" placeholder=" " value={name} onChange={(e) => setName(e.target.value)} />
+                  <label htmlFor="reg-name">Full Name</label>
+                </div>
+                <div className="form-field">
+                  <input type="text" id="reg-username" placeholder=" " value={regUsername} onChange={(e) => setRegUsername(e.target.value)} />
+                  <label htmlFor="reg-username">Username</label>
+                </div>
+              </div>
+              <div className="form-field">
+                <input type="email" id="reg-email" placeholder=" " value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label htmlFor="reg-email">Email Address</label>
+              </div>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <input type="tel" id="reg-phone" placeholder=" " value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <label htmlFor="reg-phone">Phone (10 digits)</label>
+                </div>
+                <div className="form-field">
+                  <input type="date" id="reg-dob" placeholder=" " value={dob} onChange={(e) => setDob(e.target.value)} />
+                  <label htmlFor="reg-dob" style={{ top: 0, fontSize: ".76rem", color: "#2563eb", fontWeight: 600 }}>Date of Birth</label>
+                </div>
+              </div>
+              <div className="form-field">
+                <input type={showPass ? "text" : "password"} id="reg-password" placeholder=" " value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
+                <label htmlFor="reg-password">Password</label>
+                <EyeIcon />
+              </div>
+              <div className="form-field">
+                <input type={showPass ? "text" : "password"} id="reg-confirm" placeholder=" " value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <label htmlFor="reg-confirm">Confirm Password</label>
+              </div>
+              <button
+                className="auth-submit-btn"
+                onClick={handleRegister}
+                disabled={loading}
+              >
+                {loading ? <><span className="btn-spinner" /> Creating account…</> : "Create Account →"}
+              </button>
+              <div className="auth-divider">or</div>
+              <p style={{ textAlign: "center", fontSize: ".88rem", color: "#64748b", marginTop: "8px" }}>
+                Already have an account?{" "}
+                <button onClick={() => { setTab("login"); clearWarn(); }}
+                  style={{ color: "#2563eb", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
                   Sign in
                 </button>
-                <p className="text-center">
-                  Don't have account?{" "}
-                  <a href="#" onClick={() => setIsRegistering(true)}>
-                    Register
-                  </a>
-                </p>
-              </>
-            )}
-
-            {error && <div className="alert alert-danger mt-2">{error}</div>}
-          </div>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
